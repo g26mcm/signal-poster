@@ -87,6 +87,61 @@
     margin-bottom: 24px;
     font-size: 14px;
   }
+  .signals-section { margin-top: 48px; }
+  .signals-section h2 {
+    font-size: 16px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 16px;
+  }
+  .empty-signals { color: var(--muted); font-size: 14px; }
+  .signal-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .signal-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .signal-card-title { font-weight: 700; font-size: 15px; }
+  .signal-card-title .buy { color: var(--accent); }
+  .signal-card-title .sell { color: #ff8a8a; }
+  .signal-card-meta { color: var(--muted); font-size: 13px; }
+  .remove-signal {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .tp-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .tp-box {
+    background: #0b0f0a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 4px;
+    text-align: center;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .tp-box .tp-label { color: var(--muted); display: block; font-size: 11px; }
+  .tp-box .tp-value { display: block; margin-top: 2px; }
+  .tp-box:hover:not(.hit):not(.disabled) { border-color: var(--border-focus); }
+  .tp-box.hit { background: #123312; border-color: var(--accent); color: var(--accent); cursor: default; }
+  .tp-box.disabled { opacity: 0.35; cursor: default; }
+  .trade-action {
+    margin-bottom: 12px;
+    width: auto;
+    font-size: 13px;
+    padding: 8px 10px;
+    border-color: var(--border);
+  }
 </style>
 </head>
 <body>
@@ -161,13 +216,20 @@
   <div class="status" id="status"></div>
 </form>
 
+<div class="signals-section">
+  <h2>Active Signals</h2>
+  <div id="signalsList"><div class="empty-signals">Loading...</div></div>
+</div>
+
 <script>
   // Point this at wherever your backend is running
   const API_URL = "https://signal-poster.onrender.com/api/post-signal";
+  const API_BASE = API_URL.replace("/api/post-signal", "");
 
   const form = document.getElementById("signalForm");
   const statusEl = document.getElementById("status");
   const btn = document.getElementById("submitBtn");
+  const signalsList = document.getElementById("signalsList");
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -175,8 +237,10 @@
     btn.textContent = "Posting...";
     statusEl.className = "status";
 
+    const passwordValue = document.getElementById("password").value;
+
     const payload = {
-      password: document.getElementById("password").value,
+      password: passwordValue,
       channel: document.getElementById("channel").value,
       direction: document.getElementById("direction").value,
       pair: document.getElementById("pair").value,
@@ -198,6 +262,8 @@
         statusEl.textContent = "✅ Signal posted to Telegram.";
         statusEl.className = "status ok";
         form.reset();
+        document.getElementById("password").value = passwordValue; // keep password filled in
+        loadSignals();
       } else {
         throw new Error(data.error || "Unknown error");
       }
@@ -209,6 +275,144 @@
       btn.textContent = "Post Signal";
     }
   });
+
+  function directionClass(direction) {
+    return direction === "BUY" ? "buy" : "sell";
+  }
+
+  function renderSignals(signals) {
+    if (!signals.length) {
+      signalsList.innerHTML = '<div class="empty-signals">No active signals yet.</div>';
+      return;
+    }
+
+    signalsList.innerHTML = signals.map(sig => {
+      const boxes = [0,1,2,3,4,5].map(i => {
+        const tp = sig.tps[i];
+        if (!tp) {
+          return `<div class="tp-box disabled"><span class="tp-label">TP${i+1}</span><span class="tp-value">—</span></div>`;
+        }
+        if (sig.hits[i]) {
+          return `<div class="tp-box hit"><span class="tp-label">TP${i+1}</span><span class="tp-value">✅ ${tp}</span></div>`;
+        }
+        return `<div class="tp-box" data-signal="${sig.id}" data-tp="${i}"><span class="tp-label">TP${i+1}</span><span class="tp-value">${tp}</span></div>`;
+      }).join("");
+
+      return `
+        <div class="signal-card">
+          <div class="signal-card-header">
+            <div>
+              <span class="signal-card-title"><span class="${directionClass(sig.direction)}">${sig.direction}</span> ${sig.pair}</span>
+              <div class="signal-card-meta">Entry: ${sig.entry} &nbsp;•&nbsp; SL: ${sig.sl}</div>
+            </div>
+          </div>
+          <select class="trade-action" data-signal="${sig.id}">
+            <option value="">Trade actions...</option>
+            <option value="cancel">Cancel Trade</option>
+            <option value="sl_hit">Stop Loss Hit</option>
+          </select>
+          <div class="tp-row">${boxes}</div>
+        </div>
+      `;
+    }).join("");
+
+    // Wire up TP box clicks
+    signalsList.querySelectorAll(".tp-box[data-signal]").forEach(box => {
+      box.addEventListener("click", () => markTp(box.dataset.signal, Number(box.dataset.tp)));
+    });
+
+    // Wire up trade action dropdowns
+    signalsList.querySelectorAll(".trade-action").forEach(select => {
+      select.addEventListener("change", () => {
+        const signalId = select.dataset.signal;
+        const action = select.value;
+        select.value = "";
+
+        if (action === "cancel") {
+          if (confirm("Cancel this trade? It'll be removed from the list (no message sent to Telegram).")) {
+            removeSignal(signalId);
+          }
+        } else if (action === "sl_hit") {
+          if (confirm("Mark stop loss as hit? This posts a message in the group and removes the trade from the list.")) {
+            markSl(signalId);
+          }
+        }
+      });
+    });
+  }
+
+  async function loadSignals() {
+    try {
+      const res = await fetch(`${API_BASE}/api/signals`);
+      const data = await res.json();
+      renderSignals(data.signals || []);
+    } catch (err) {
+      signalsList.innerHTML = '<div class="empty-signals">Couldn\'t load signals.</div>';
+    }
+  }
+
+  async function markTp(signalId, tpIndex) {
+    const password = document.getElementById("password").value;
+    if (!password) {
+      alert("Type your password in the Password field above first.");
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/mark-tp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, signalId, tpIndex }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unknown error");
+      loadSignals();
+    } catch (err) {
+      alert("Couldn't mark TP: " + err.message);
+    }
+  }
+
+  async function markSl(signalId) {
+    const password = document.getElementById("password").value;
+    if (!password) {
+      alert("Type your password in the Password field above first.");
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/mark-sl`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, signalId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unknown error");
+      loadSignals();
+    } catch (err) {
+      alert("Couldn't mark stop loss: " + err.message);
+    }
+  }
+
+  async function removeSignal(signalId) {
+    const password = document.getElementById("password").value;
+    if (!password) {
+      alert("Type your password in the Password field above first.");
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/remove-signal`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, signalId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unknown error");
+      loadSignals();
+    } catch (err) {
+      alert("Couldn't remove signal: " + err.message);
+    }
+  }
+
+  loadSignals();
+  setInterval(loadSignals, 8000);
 </script>
 
 </body>

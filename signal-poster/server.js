@@ -33,6 +33,10 @@ const CHANNELS = {
   },
 };
 
+// Keeps track of posted signals so the form can show TP boxes and mark
+// them as hit. This resets if the server restarts (that's fine for now).
+let activeSignals = [];
+
 function formatSignalMessage(sig) {
   const circle = sig.direction === "BUY" ? "🟢" : "🔴";
   const tpLines = sig.tps
@@ -88,11 +92,132 @@ app.post("/api/post-signal", async (req, res) => {
       return res.status(500).json({ error: tgData.description || "Telegram API error" });
     }
 
-    res.json({ success: true, message_id: tgData.result.message_id });
+    // Remember this signal so we can show TP boxes and mark hits later
+    const signalRecord = {
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      channel: sig.channel,
+      direction: sig.direction,
+      pair: sig.pair,
+      entry: sig.entry,
+      sl: sig.sl,
+      tps: sig.tps,
+      hits: sig.tps.map(() => false),
+      messageId: tgData.result.message_id,
+      createdAt: Date.now(),
+    };
+    activeSignals.unshift(signalRecord);
+
+    res.json({ success: true, signal: signalRecord });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
+});
+
+// Returns all currently tracked signals, newest first
+app.get("/api/signals", (req, res) => {
+  res.json({ signals: activeSignals });
+});
+
+// Marks a specific TP as hit and posts a reply in the original Telegram thread
+app.post("/api/mark-tp", async (req, res) => {
+  try {
+    const { password, signalId, tpIndex } = req.body;
+
+    if (!password || password !== process.env.APP_PASSWORD) {
+      return res.status(401).json({ error: "Incorrect password" });
+    }
+
+    const signal = activeSignals.find((s) => s.id === signalId);
+    if (!signal) {
+      return res.status(404).json({ error: "Signal not found (server may have restarted)" });
+    }
+    if (signal.hits[tpIndex]) {
+      return res.status(400).json({ error: "That TP is already marked" });
+    }
+
+    const channelConfig = CHANNELS[signal.channel];
+    if (!channelConfig) {
+      return res.status(400).json({ error: "Unknown channel for this signal" });
+    }
+
+    const text = `🎯 TP${tpIndex + 1} HIT for ${signal.direction} ${signal.pair} ✅`;
+
+    const tgRes = await fetch(`https://api.telegram.org/bot${channelConfig.botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: channelConfig.chatId,
+        text,
+        reply_to_message_id: signal.messageId,
+      }),
+    });
+
+    const tgData = await tgRes.json();
+    if (!tgData.ok) {
+      return res.status(500).json({ error: tgData.description || "Telegram API error" });
+    }
+
+    signal.hits[tpIndex] = true;
+    res.json({ success: true, signal });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Marks the stop loss as hit: posts a reply in Telegram, then removes the signal
+app.post("/api/mark-sl", async (req, res) => {
+  try {
+    const { password, signalId } = req.body;
+
+    if (!password || password !== process.env.APP_PASSWORD) {
+      return res.status(401).json({ error: "Incorrect password" });
+    }
+
+    const signal = activeSignals.find((s) => s.id === signalId);
+    if (!signal) {
+      return res.status(404).json({ error: "Signal not found (server may have restarted)" });
+    }
+
+    const channelConfig = CHANNELS[signal.channel];
+    if (!channelConfig) {
+      return res.status(400).json({ error: "Unknown channel for this signal" });
+    }
+
+    const text = `❌ STOP LOSS HIT for ${signal.direction} ${signal.pair} ❌`;
+
+    const tgRes = await fetch(`https://api.telegram.org/bot${channelConfig.botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: channelConfig.chatId,
+        text,
+        reply_to_message_id: signal.messageId,
+      }),
+    });
+
+    const tgData = await tgRes.json();
+    if (!tgData.ok) {
+      return res.status(500).json({ error: tgData.description || "Telegram API error" });
+    }
+
+    activeSignals = activeSignals.filter((s) => s.id !== signalId);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Removes a signal from the tracked list (doesn't delete anything from Telegram)
+app.post("/api/remove-signal", (req, res) => {
+  const { password, signalId } = req.body;
+  if (!password || password !== process.env.APP_PASSWORD) {
+    return res.status(401).json({ error: "Incorrect password" });
+  }
+  activeSignals = activeSignals.filter((s) => s.id !== signalId);
+  res.json({ success: true });
 });
 
 const PORT = process.env.PORT || 3000;
