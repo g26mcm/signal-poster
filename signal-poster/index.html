@@ -99,7 +99,15 @@
       <label>Send to channel</label>
       <select id="channel">
         <option value="trading_floor">FoundryFX Signals</option>
+        <option value="foundryfx_floor">FoundryFX Floor</option>
       </select>
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
+      <label>Password <span class="req">*</span></label>
+      <input id="password" type="password" placeholder="Enter password" required />
     </div>
   </div>
 
@@ -155,7 +163,7 @@
 
 <script>
   // Point this at wherever your backend is running
-  const API_URL = "http://localhost:3000/api/post-signal";
+  const API_URL = "https://signal-poster.onrender.com/api/post-signal";
 
   const form = document.getElementById("signalForm");
   const statusEl = document.getElementById("status");
@@ -168,6 +176,7 @@
     statusEl.className = "status";
 
     const payload = {
+      password: document.getElementById("password").value,
       channel: document.getElementById("channel").value,
       direction: document.getElementById("direction").value,
       pair: document.getElementById("pair").value,
