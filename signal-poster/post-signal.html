@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Post Signal — FoundryFX</title>
+<style>
+  :root {
+    --bg: #0b0f0a;
+    --panel: #10140f;
+    --border: #263021;
+    --border-focus: #FF7A1A;
+    --accent: #FF7A1A;
+    --success: #9BEE00;
+    --blue: #2F6FED;
+    --orange: #C2410C;
+    --text: #f2f2f2;
+    --muted: #8a938a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+  }
+  a { text-decoration: none; }
+
+  /* ---- Nav ---- */
+  .topnav {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .logo-mark {
+    width: 40px; height: 40px; border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .brand-text { display: flex; flex-direction: column; }
+  .brand-name { font-weight: 800; font-size: 18px; color: var(--text); }
+  .brand-name .fx { color: var(--accent); }
+  .brand-tag { font-size: 10px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; }
+  .tabs { display: flex; gap: 28px; flex-wrap: wrap; }
+  .tab { color: var(--text); font-size: 14px; font-weight: 600; opacity: 0.75; }
+  .tab:hover, .tab.active { opacity: 1; color: var(--accent); }
+  .nav-actions { display: flex; flex-direction: column; gap: 8px; }
+  .nav-btn {
+    display: block;
+    text-align: center;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .nav-btn.orange { background: var(--orange); color: #fff; }
+  .nav-btn.blue { background: var(--blue); color: #fff; }
+
+  .page { max-width: 900px; margin: 0 auto; padding: 32px 20px 80px; }
+
+  h1 {
+    font-size: 20px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+  label .req { color: #ff5c5c; }
+  .row {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .row.cols-2 { grid-template-columns: 1fr 1fr; }
+  .row.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  input, select, textarea {
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 15px;
+    outline: none;
+    font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--border-focus);
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  button.primary {
+    background: var(--orange);
+    color: #ffffff;
+    font-weight: 700;
+    border: none;
+    padding: 16px 24px;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+  }
+  button.primary:disabled { opacity: 0.6; cursor: not-allowed; }
+  .hint { color: var(--muted); font-size: 13px; margin-top: 10px; }
+  .status { margin-top: 16px; font-size: 14px; padding: 12px; border-radius: 8px; display: none; }
+  .status.ok { background: #123312; color: #9BEE00; display: block; }
+  .status.err { background: #331212; color: #ff8a8a; display: block; }
+  .signals-section { margin-top: 48px; }
+  .signals-section h2 {
+    font-size: 16px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 16px;
+  }
+  .empty-signals { color: var(--muted); font-size: 14px; }
+  .signal-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .signal-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .signal-card-title { font-weight: 700; font-size: 15px; }
+  .signal-card-title .buy { color: var(--success); }
+  .signal-card-title .sell { color: #ff8a8a; }
+  .signal-card-meta { color: var(--muted); font-size: 13px; }
+  .tp-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .tp-box {
+    background: #0b0f0a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 4px;
+    text-align: center;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .tp-box .tp-label { color: var(--muted); display: block; font-size: 11px; }
+  .tp-box .tp-value { display: block; margin-top: 2px; }
+  .tp-box:hover:not(.hit):not(.disabled) { border-color: var(--border-focus); }
+  .tp-box.hit { background: #123312; border-color: var(--success); color: var(--success); cursor: default; }
+  .tp-box.disabled { opacity: 0.35; cursor: default; }
+  .trade-action {
+    margin-bottom: 12px;
+    width: auto;
+    font-size: 13px;
+    padding: 8px 10px;
+    border-color: var(--border);
+  }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="brand">
+    <img src="assets/foundryfx-logo.png" alt="FoundryFX logo" class="logo-mark" />
+    <div class="brand-text">
+      <div class="brand-name">Foundry<span class="fx">FX</span></div>
+      <div class="brand-tag">Trade Smarter. Together.</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <a href="index.html" class="tab">HOME</a>
+    <a href="live-room.html" class="tab">LIVE ROOM</a>
+    <a href="brokers.html" class="tab">BROKERS</a>
+    <a href="telegram-groups.html" class="tab">TELEGRAM GROUPS</a>
+  </div>
+  <div class="nav-actions">
+    <a href="post-signal.html" class="nav-btn orange">Post Signal</a>
+    <a href="brokers.html" class="nav-btn blue">Get Started</a>
+  </div>
+</nav>
+
+<div class="page">
+
+<h1>⚡ New Signal</h1>
+
+<form id="signalForm">
+  <div class="row">
+    <div>
+      <label>Send to channel</label>
+      <select id="channel">
+        <option value="trading_floor">FoundryFX Signals</option>
+        <option value="foundryfx_floor">FoundryFX Floor</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
+      <label>Password <span class="req">*</span></label>
+      <input id="password" type="password" placeholder="Enter password" required />
+    </div>
+  </div>
+
+  <div class="row cols-3">
+    <div>
+      <label>Direction</label>
+      <select id="direction">
+        <option value="BUY">BUY</option>
+        <option value="SELL">SELL</option>
+      </select>
+    </div>
+    <div>
+      <label>Pair / Currency</label>
+      <select id="pair">
+        <option>XAUUSD</option>
+        <option>EURUSD</option>
+        <option>GBPUSD</option>
+        <option>US30</option>
+        <option>NAS100</option>
+        <option>BTCUSD</option>
+      </select>
+    </div>
+    <div>
+      <label>Entry (single or zone) <span class="req">*</span></label>
+      <input id="entry" placeholder="e.g. 1234.5 or 1234 - 1236" required />
+    </div>
+  </div>
+
+  <div class="row cols-4">
+    <div><label>TP1 <span class="req">*</span></label><input id="tp1" placeholder="TP1" required /></div>
+    <div><label>TP2 (opt)</label><input id="tp2" placeholder="TP2" /></div>
+    <div><label>TP3 (opt)</label><input id="tp3" placeholder="TP3" /></div>
+    <div><label>TP4 (opt)</label><input id="tp4" placeholder="TP4" /></div>
+  </div>
+
+  <div class="row cols-3">
+    <div><label>TP5 (opt)</label><input id="tp5" placeholder="TP5" /></div>
+    <div><label>TP6 (opt)</label><input id="tp6" placeholder="TP6" /></div>
+    <div><label>Stop loss <span class="req">*</span></label><input id="sl" placeholder="SL" required /></div>
+  </div>
+
+  <div class="row">
+    <div>
+      <label>Notes</label>
+      <textarea id="notes" placeholder="Notes (optional)"></textarea>
+    </div>
+  </div>
+
+  <button type="submit" class="primary" id="submitBtn">Post Signal</button>
+  <div class="hint">Posting broadcasts immediately — sent to Telegram now.</div>
+  <div class="status" id="status"></div>
+</form>
+
+<div class="signals-section">
+  <h2>Active Signals</h2>
+  <div id="signalsList"><div class="empty-signals">Loading...</div></div>
+</div>
+
+</div>
+
+<script>
+  // Point this at wherever your backend is running
+  const API_URL = "https://signal-poster.onrender.com/api/post-signal";
+  const API_BASE = API_URL.replace("/api/post-signal", "");
+
+  const form = document.getElementById("signalForm");
+  const statusEl = document.getElementById("status");
+  const btn = document.getElementById("submitBtn");
+  const signalsList = document.getElementById("signalsList");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    btn.textContent = "Posting...";
+    statusEl.className = "status";
+
+    const passwordValue = document.getElementById("password").value;
+
+    const payload = {
+      password: passwordValue,
+      channel: document.getElementById("channel").value,
+      direction: document.getElementById("direction").value,
+      pair: document.getElementById("pair").value,
+      entry: document.getElementById("entry").value,
+      tps: [1,2,3,4,5,6].map(n => document.getElementById("tp"+n).value).filter(Boolean),
+      sl: document.getElementById("sl").value,
+      notes: document.getElementById("notes").value,
+    };
+
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        statusEl.textContent = "✅ Signal posted to Telegram.";
+        statusEl.className = "status ok";
+        form.reset();
+        document.getElementById("password").value = passwordValue; // keep password filled in
+        loadSignals();
+      } else {
+        throw new Error(data.error || "Unknown error");
+      }
+    } catch (err) {
+      statusEl.textContent = "❌ Failed to post: " + err.message;
+      statusEl.className = "status err";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Post Signal";
+    }
+  });
+
+  function directionClass(direction) {
+    return direction === "BUY" ? "buy" : "sell";
+  }
+
+  function renderSignals(signals) {
+    if (!signals.length) {
+      signalsList.innerHTML = '<div class="empty-signals">No active signals yet.</div>';
+      return;
+    }
+
+    signalsList.innerHTML = signals.map(sig => {
+      const boxes = [0,1,2,3,4,5].map(i => {
+        const tp = sig.tps[i];
+        if (!tp) {
+          return `<div class="tp-box disabled"><span class="tp-label">TP${i+1}</span><span class="tp-value">—</span></div>`;
+        }
+        if (sig.hits[i]) {
+          return `<div class="tp-box hit"><span class="tp-label">TP${i+1}</span><span class="tp-value">✅ ${tp}</span></div>`;
+        }
+        return `<div class="tp-box" data-signal="${sig.id}" data-tp="${i}"><span class="tp-label">TP${i+1}</span><span class="tp-value">${tp}</span></div>`;
+      }).join("");
+
+      return `
+        <div class="signal-card">
+          <div class="signal-card-header">
+            <div>
+              <span class="signal-card-title"><span class="${directionClass(sig.direction)}">${sig.direction}</span> ${sig.pair}</span>
+              <div class="signal-card-meta">Entry: ${sig.entry} &nbsp;•&nbsp; SL: ${sig.sl}</div>
+            </div>
+          </div>
+          <select class="trade-action" data-signal="${sig.id}">
+            <option value="">Trade actions...</option>
+            <option value="cancel">Cancel Trade</option>
+            <option value="sl_hit">Stop Loss Hit</option>
+          </select>
+          <div class="tp-row">${boxes}</div>
+        </div>
+      `;
+    }).join("");
+
+    signalsList.querySelectorAll(".tp-box[data-signal]").forEach(box => {
+      box.addEventListener("click", () => markTp(box.dataset.signal, Number(box.dataset.tp)));
+    });
+
+    signalsList.querySelectorAll(".trade-action").forEach(select => {
+      select.addEventListener("change", () => {
+        const signalId = select.dataset.signal;
+        const action = select.value;
+        select.value = "";
+
+        if (action === "cancel") {
+          if (confirm("Cancel this trade? It'll be removed from the list (no message sent to Telegram).")) {
+            removeSignal(signalId);
+          }
+        } else if (action === "sl_hit") {
+          if (confirm("Mark stop loss as hit? This posts a message in the group and removes the trade from the list.")) {
+            markSl(signalId);
+          }
+        }
+      });
+    });
+  }
+
+  async function loadSignals() {
+    try {
+      const res = await fetch(`${API_BASE}/api/signals`);
+      const data = await res.json();
+      renderSignals(data.signals || []);
+    } catch (err) {
+      signalsList.innerHTML = '<div class="empty-signals">Couldn\'t load signals.</div>';
+    }
+  }
+
+  async function markTp(signalId, tpIndex) {
+    const password = document.getElementById("password").value;
+    if (!password) {
+      alert("Type your password in the Password field above first.");
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/mark-tp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, signalId, tpIndex }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unknown error");
+      loadSignals();
+    } catch (err) {
+      alert("Couldn't mark TP: " + err.message);
+    }
+  }
+
+  async function markSl(signalId) {
+    const password = document.getElementById("password").value;
+    if (!password) {
+      alert("Type your password in the Password field above first.");
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/mark-sl`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, signalId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unknown error");
+      loadSignals();
+    } catch (err) {
+      alert("Couldn't mark stop loss: " + err.message);
+    }
+  }
+
+  async function removeSignal(signalId) {
+    const password = document.getElementById("password").value;
+    if (!password) {
+      alert("Type your password in the Password field above first.");
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/remove-signal`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, signalId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unknown error");
+      loadSignals();
+    } catch (err) {
+      alert("Couldn't remove signal: " + err.message);
+    }
+  }
+
+  loadSignals();
+  setInterval(loadSignals, 8000);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Brokers — FoundryFX</title>
+<style>
+  :root {
+    --bg: #0b0f0a;
+    --panel: #10140f;
+    --border: #263021;
+    --accent: #FF7A1A;
+    --success: #9BEE00;
+    --blue: #2F6FED;
+    --orange: #C2410C;
+    --text: #f2f2f2;
+    --muted: #8a938a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+  }
+  a { text-decoration: none; }
+
+  .topnav {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .logo-mark {
+    width: 40px; height: 40px; border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .brand-text { display: flex; flex-direction: column; }
+  .brand-name { font-weight: 800; font-size: 18px; color: var(--text); }
+  .brand-name .fx { color: var(--accent); }
+  .brand-tag { font-size: 10px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; }
+  .tabs { display: flex; gap: 28px; flex-wrap: wrap; }
+  .tab { color: var(--text); font-size: 14px; font-weight: 600; opacity: 0.75; }
+  .tab:hover, .tab.active { opacity: 1; color: var(--accent); }
+  .nav-actions { display: flex; flex-direction: column; gap: 8px; }
+  .nav-btn {
+    display: block;
+    text-align: center;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .nav-btn.orange { background: var(--orange); color: #fff; }
+  .nav-btn.blue { background: var(--blue); color: #fff; }
+
+  .page { max-width: 700px; margin: 0 auto; padding: 60px 20px 100px; }
+  .page h1 { font-size: 26px; margin-bottom: 8px; }
+  .page .sub { color: var(--muted); font-size: 15px; margin-bottom: 40px; }
+
+  .broker-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+  }
+  .broker-card h2 { margin: 0 0 6px; font-size: 20px; }
+  .broker-card p { color: var(--text); line-height: 1.7; font-size: 15px; margin-bottom: 20px; }
+  .ref-row {
+    background: #0b0f0a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+  .ref-row .label { color: var(--muted); }
+  .ref-row .value { font-weight: 700; color: var(--accent); }
+  .broker-btn {
+    display: inline-block;
+    background: var(--blue);
+    color: #fff;
+    font-weight: 700;
+    padding: 14px 28px;
+    border-radius: 8px;
+    font-size: 15px;
+  }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="brand">
+    <img src="assets/foundryfx-logo.png" alt="FoundryFX logo" class="logo-mark" />
+    <div class="brand-text">
+      <div class="brand-name">Foundry<span class="fx">FX</span></div>
+      <div class="brand-tag">Trade Smarter. Together.</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <a href="index.html" class="tab">HOME</a>
+    <a href="live-room.html" class="tab">LIVE ROOM</a>
+    <a href="brokers.html" class="tab active">BROKERS</a>
+    <a href="telegram-groups.html" class="tab">TELEGRAM GROUPS</a>
+  </div>
+  <div class="nav-actions">
+    <a href="post-signal.html" class="nav-btn orange">Post Signal</a>
+    <a href="brokers.html" class="nav-btn blue">Get Started</a>
+  </div>
+</nav>
+
+<div class="page">
+  <h1>How to get started?</h1>
+  <div class="sub">All you have to do is sign up with our partnered broker.</div>
+
+  <div class="broker-card">
+    <h2>PuPrime</h2>
+    <p>
+      We're partnered with PuPrime — sign up through the link below using our
+      referral code to get connected with FoundryFX.
+    </p>
+    <div class="ref-row">
+      <span class="label">Referral Code</span>
+      <span class="value">g57SEoWt</span>
+    </div>
+    <a class="broker-btn" href="https://puvip.co/la-partners/g57SEoWt" target="_blank" rel="noopener">
+      Sign up with PuPrime →
+    </a>
+  </div>
+</div>
+
+</body>
+</html>

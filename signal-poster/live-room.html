@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Live Room — FoundryFX</title>
+<style>
+  :root {
+    --bg: #0b0f0a;
+    --panel: #10140f;
+    --border: #263021;
+    --accent: #FF7A1A;
+    --success: #9BEE00;
+    --blue: #2F6FED;
+    --orange: #C2410C;
+    --text: #f2f2f2;
+    --muted: #8a938a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+  }
+  a { text-decoration: none; }
+
+  .topnav {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .logo-mark {
+    width: 40px; height: 40px; border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .brand-text { display: flex; flex-direction: column; }
+  .brand-name { font-weight: 800; font-size: 18px; color: var(--text); }
+  .brand-name .fx { color: var(--accent); }
+  .brand-tag { font-size: 10px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; }
+  .tabs { display: flex; gap: 28px; flex-wrap: wrap; }
+  .tab { color: var(--text); font-size: 14px; font-weight: 600; opacity: 0.75; }
+  .tab:hover, .tab.active { opacity: 1; color: var(--accent); }
+  .nav-actions { display: flex; flex-direction: column; gap: 8px; }
+  .nav-btn {
+    display: block;
+    text-align: center;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .nav-btn.orange { background: var(--orange); color: #fff; }
+  .nav-btn.blue { background: var(--blue); color: #fff; }
+
+  .page { max-width: 800px; margin: 0 auto; padding: 40px 20px 100px; }
+  .page h1 { font-size: 22px; margin-bottom: 6px; }
+  .page .sub { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+
+  .empty-signals { color: var(--muted); font-size: 14px; }
+  .signal-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .signal-card-title { font-weight: 700; font-size: 16px; }
+  .signal-card-title .buy { color: var(--success); }
+  .signal-card-title .sell { color: #ff8a8a; }
+  .signal-card-meta { color: var(--muted); font-size: 13px; margin-top: 4px; margin-bottom: 14px; }
+  .tp-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .tp-box {
+    background: #0b0f0a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 4px;
+    text-align: center;
+    font-size: 12px;
+  }
+  .tp-box .tp-label { color: var(--muted); display: block; font-size: 11px; }
+  .tp-box .tp-value { display: block; margin-top: 2px; }
+  .tp-box.hit { background: #123312; border-color: var(--success); color: var(--success); }
+  .tp-box.disabled { opacity: 0.35; }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="brand">
+    <img src="assets/foundryfx-logo.png" alt="FoundryFX logo" class="logo-mark" />
+    <div class="brand-text">
+      <div class="brand-name">Foundry<span class="fx">FX</span></div>
+      <div class="brand-tag">Trade Smarter. Together.</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <a href="index.html" class="tab">HOME</a>
+    <a href="live-room.html" class="tab active">LIVE ROOM</a>
+    <a href="brokers.html" class="tab">BROKERS</a>
+    <a href="telegram-groups.html" class="tab">TELEGRAM GROUPS</a>
+  </div>
+  <div class="nav-actions">
+    <a href="post-signal.html" class="nav-btn orange">Post Signal</a>
+    <a href="brokers.html" class="nav-btn blue">Get Started</a>
+  </div>
+</nav>
+
+<div class="page">
+  <h1>Live Room</h1>
+  <div class="sub">All currently open trades, updated live. TP progress shown below each trade.</div>
+  <div id="signalsList"><div class="empty-signals">Loading...</div></div>
+</div>
+
+<script>
+  const API_BASE = "https://signal-poster.onrender.com";
+  const signalsList = document.getElementById("signalsList");
+
+  function directionClass(direction) {
+    return direction === "BUY" ? "buy" : "sell";
+  }
+
+  function renderSignals(signals) {
+    if (!signals.length) {
+      signalsList.innerHTML = '<div class="empty-signals">No active trades right now.</div>';
+      return;
+    }
+
+    signalsList.innerHTML = signals.map(sig => {
+      const boxes = [0,1,2,3,4,5].map(i => {
+        const tp = sig.tps[i];
+        if (!tp) {
+          return `<div class="tp-box disabled"><span class="tp-label">TP${i+1}</span><span class="tp-value">—</span></div>`;
+        }
+        if (sig.hits[i]) {
+          return `<div class="tp-box hit"><span class="tp-label">TP${i+1}</span><span class="tp-value">✅ ${tp}</span></div>`;
+        }
+        return `<div class="tp-box"><span class="tp-label">TP${i+1}</span><span class="tp-value">${tp}</span></div>`;
+      }).join("");
+
+      return `
+        <div class="signal-card">
+          <div class="signal-card-title"><span class="${directionClass(sig.direction)}">${sig.direction}</span> ${sig.pair}</div>
+          <div class="signal-card-meta">Entry: ${sig.entry} &nbsp;•&nbsp; SL: ${sig.sl}</div>
+          <div class="tp-row">${boxes}</div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  async function loadSignals() {
+    try {
+      const res = await fetch(`${API_BASE}/api/signals`);
+      const data = await res.json();
+      renderSignals(data.signals || []);
+    } catch (err) {
+      signalsList.innerHTML = '<div class="empty-signals">Couldn\'t load trades right now.</div>';
+    }
+  }
+
+  loadSignals();
+  setInterval(loadSignals, 8000);
+</script>
+
+</body>
+</html>
